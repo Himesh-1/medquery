@@ -1,0 +1,17 @@
+[
+  {
+    "pmid": "123456",
+    "title": "Advances in Type 2 Diabetes Management",
+    "abstract": "This study reviews the efficacy of Metformin combined with lifestyle changes. Results show a 20% reduction in HbA1c levels compared to lifestyle changes alone."
+  },
+  {
+    "pmid": "789012",
+    "title": "Hypertension and Dietary Salt Intake",
+    "abstract": "A cohort study demonstrating a significant correlation between high sodium intake (>5g/day) and elevated systolic blood pressure in adults over 40."
+  },
+  {
+    "pmid": "345678",
+    "title": "AI in Radiology",
+    "abstract": "Deep learning models applied to chest X-rays have achieved diagnostic parity with board-certified radiologists for detecting pneumonia."
+  }
+]

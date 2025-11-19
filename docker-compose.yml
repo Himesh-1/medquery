@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./backend
+    container_name: medquery_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./backend/data:/app/data
+
+  frontend:
+    build: ./frontend
+    container_name: medquery_frontend
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+
+networks:
+  default:
+    name: medquery-net
