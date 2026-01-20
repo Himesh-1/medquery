@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import os
 
-API_URL = os.getenv("API_URL", "http://backend:8000")
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="MedQuery AI", page_icon="🏥", layout="centered")
 
@@ -74,7 +74,21 @@ if "messages" not in st.session_state: st.session_state.messages = []
 
 with st.sidebar:
     st.title("🩺 MedQuery AI")
-    st.caption("Sources: PubMed, FDA, Wikipedia")
+    st.caption("Sources: Local Knowledge (PubMed), FDA, Wikipedia, Web")
+    
+    st.markdown("---")
+    st.subheader("⚙️ Knowledge Base")
+    if st.button("🔄 Refresh Local Data"):
+        with st.spinner("Ingesting local PubMed data..."):
+            try:
+                response = requests.post(f"{API_URL}/ingest", timeout=120)
+                if response.status_code == 200:
+                    st.success("Ingestion Complete!")
+                    st.toast(response.json()["message"], icon="✅")
+                else:
+                    st.error(f"Ingestion Failed: {response.text}")
+            except Exception as e:
+                st.error(f"Connection Error: {e}")
 
 st.markdown("<h2 style='text-align: center;'>🏥 MedQuery AI</h2>", unsafe_allow_html=True)
 

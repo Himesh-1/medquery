@@ -9,6 +9,7 @@ from langchain_community.retrievers import PubMedRetriever, WikipediaRetriever
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain.retrievers import MergerRetriever
 from app.services.gemini import gemini_service
+from app.services.ingestion import ingestion_pipeline 
 from app.core.prompts import PROMPT
 
 # Set logging to see exactly what URLs are generated
@@ -70,21 +71,41 @@ class RAGService:
     def __init__(self):
         self.llm = gemini_service.get_llm()
         
-        # PubMed (The main requested feature)
+        # 1. Local Vector Store (Primary)
+        self.vector_store_retriever = None
+        vs = ingestion_pipeline.get_vector_store()
+        if vs:
+            # High k to ensure we get enough local context
+            self.vector_store_retriever = vs.as_retriever(search_kwargs={"k": 5})
+
+        # 2. Live Tools (Backups)
         self.pubmed = PubMedRetriever(top_k_results=3)
-        
-        # Backups
         self.wiki = WikipediaRetriever(top_k_results=1, doc_content_chars_max=1000)
         self.web = DuckDuckGoRetriever()
         self.fda = OpenFDARetriever()
         
-        self.merger = MergerRetriever(retrievers=[self.pubmed, self.wiki, self.web, self.fda])
+    def _get_combined_retriever(self):
+        """Dynamic retriever assembly based on what's available."""
+        retrievers = []
+        
+        # Check if vector store has been updated/loaded
+        vs = ingestion_pipeline.get_vector_store()
+        if vs:
+             retrievers.append(vs.as_retriever(search_kwargs={"k": 5}))
+        
+        # Add fallbacks
+        retrievers.extend([self.pubmed, self.wiki, self.web, self.fda])
+        
+        return MergerRetriever(retrievers=retrievers)
 
     def get_answer(self, question: str):
+        # Dynamically build retriever to catch updates
+        combined_retriever = self._get_combined_retriever()
+        
         qa_chain = RetrievalQA.from_chain_type(
             llm=self.llm,
             chain_type="stuff",
-            retriever=self.merger,
+            retriever=combined_retriever,
             return_source_documents=True,
             chain_type_kwargs={"prompt": PROMPT}
         )
@@ -92,14 +113,16 @@ class RAGService:
         result = qa_chain.invoke({"query": question})
         
         source_docs = []
+        seen_urls = set()
+
         for doc in result["source_documents"]:
             meta = doc.metadata
             
             # --- STRICT PUBMED ID EXTRACTION ---
             # PubMedRetriever sometimes uses 'uid' or 'UID'
-            pmid = meta.get("uid") or meta.get("UID")
+            pmid = meta.get("uid") or meta.get("UID") or meta.get("pmid")
             
-            if pmid:
+            if pmid and pmid != "Unknown ID":
                 label = "PubMed"
                 # THE EXACT LEGITIMATE SOURCE LINK
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
@@ -114,9 +137,13 @@ class RAGService:
                 label = "DuckDuckGo"
                 url = meta["url"]
             else:
-                label = "Source"
-                # Fallback search
-                url = f"https://www.google.com/search?q={meta.get('title', '')}"
+                label = "Local Knowledge"
+                url = "#"
+            
+            # De-duplication
+            if url in seen_urls and url != "#":
+                continue
+            seen_urls.add(url)
 
             source_docs.append({
                 "title": clean_text(meta.get("Title") or meta.get("title") or "Medical Source")[:80],
