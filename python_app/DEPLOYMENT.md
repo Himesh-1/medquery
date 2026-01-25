@@ -1,41 +1,54 @@
-# Deployment Guide (Split Services)
+# Migration Guide: Node/React -> Python/Streamlit (Docker)
 
-Since you previously had **Backend** and **Frontend** as separate services, you can maintain that structure. This allows you to scale them independently.
+Follow these exact steps to update your existing Render services.
 
-## Part 1: Update the Backend Service
+## Phase 1: GitHub
 
-This service will run the FastAPI Python API.
-
-1.  **Select your EXISTING Backend Service** on Render.
-2.  **Settings** > Update:
-    - **Root Directory**: `python_app`
-    - **Build Command**: `pip install -r requirements.txt`
-    - **Start Command**: `uvicorn server:app --host 0.0.0.0 --port $PORT`
-3.  **Environment Variables**:
-    - Add `GEMINI_API_KEY`: Your Google API Key.
-    - Add `PYTHON_VERSION`: `3.10.12`.
-4.  **Deploy**: Verification - this URL (e.g., `https://my-backend.onrender.com`) will return JSON if you visit `/docs`.
-
-## Part 2: Update the Frontend Service
-
-This service will run the Streamlit UI.
-_Note: Ensure this is a "Web Service" on Render, not a "Static Site". Streamlit requires a server._
-
-1.  **Select your EXISTING Frontend Service** on Render.
-2.  **Settings** > Update:
-    - **Root Directory**: `python_app`
-    - **Build Command**: `pip install -r requirements.txt`
-    - **Start Command**: `streamlit run app.py --server.port $PORT --server.address 0.0.0.0`
-3.  **Environment Variables**:
-    - Add `BACKEND_URL`: The URL of your **Backend Service** (from Part 1), e.g., `https://my-backend.onrender.com`.
-      - _Important_: Do not include a trailing slash `/`.
-    - Add `PYTHON_VERSION`: `3.10.12`.
-4.  **Deploy**: This URL (e.g., `https://my-frontend.onrender.com`) is what you will share on your resume.
+1.  **Commit & Push**: Ensure your `python_app` folder (containing `Dockerfile`, `requirements.txt`, `server.py`, `app.py`) is pushed to your GitHub repository.
 
 ---
 
-### Summary of Changes
+## Phase 2: Update Backend Service
 
-- **Old Backend (Node)** -> **New Backend (FastAPI)**.
-- **Old Frontend (React)** -> **New Frontend (Streamlit)**.
-- **Connection**: The Frontend knows where the Backend is via the `BACKEND_URL` variable.
+_Goal: Replace Node.js server with FastAPI._
+
+1.  **Open Render Dashboard** and click on your **Backend Service**.
+2.  Go to **Settings** -> **Build & Deploy**.
+3.  Update the following fields (scroll down to "Docker" section if needed):
+    - **Root Directory**: `python_app`
+    - **Dockerfile Path**: `Dockerfile`
+    - **Docker Build Context**: `.`
+    - **Docker Command**: `sh -c "uvicorn server:app --host 0.0.0.0 --port $PORT"`
+4.  Go to **Environment**.
+5.  Add/Update:
+    - `GEMINI_API_KEY`: (Your Google API Key)
+    - `PORT`: `10000` (Optional, ensures it matches the command default)
+6.  **Save Changes** (if applicable) or trigger a **Manual Deploy** > **Clear build cache & deploy** (recommended to switch runtimes cleanly).
+
+---
+
+## Phase 3: Update Frontend Service
+
+_Goal: Replace React Static Site with Streamlit Web Service._
+
+**Important**: If your previous frontend was a **Static Site** on Render, you **cannot** change it to a generic Web Service. You must delete it and create a **New Web Service**.
+_However, if it was already a Web Service (Docker), follow these steps:_
+
+1.  **Open Render Dashboard** and click on your **Frontend Service**.
+2.  Go to **Settings** -> **Build & Deploy**.
+3.  Update fields:
+    - **Root Directory**: `python_app`
+    - **Dockerfile Path**: `Dockerfile`
+    - **Docker Build Context**: `.`
+    - **Docker Command**: `sh -c "streamlit run app.py --server.port $PORT --server.address 0.0.0.0"`
+4.  Go to **Environment**.
+5.  Add/Update:
+    - `BACKEND_URL`: `https://your-backend-service-name.onrender.com` (Copy url from Phase 2)
+6.  **Deploy**.
+
+---
+
+## Troubleshooting
+
+- **"Port Bound" Error**: If logs say "Address already in use", remove the `PORT` env var and let Render assign it automatically.
+- **"Static Site" Limitation**: As mentioned, Streamlit requires a CPU to run python. Static sites (free CDN) cannot run Streamlit. You need a "Web Service" (Free Tier available).
