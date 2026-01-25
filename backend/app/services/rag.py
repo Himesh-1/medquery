@@ -94,14 +94,16 @@ class RAGService:
              retrievers.append(vs.as_retriever(search_kwargs={"k": 5}))
         
         # Add fallbacks
-        retrievers.extend([self.pubmed, self.wiki, self.web, self.fda])
+        # retrievers.extend([self.pubmed, self.wiki, self.web, self.fda])
         
         return MergerRetriever(retrievers=retrievers)
 
     def get_answer(self, question: str):
         # Dynamically build retriever to catch updates
+        print("--- Building Combined Retriever ---")
         combined_retriever = self._get_combined_retriever()
         
+        print("--- Initializing QA Chain ---")
         qa_chain = RetrievalQA.from_chain_type(
             llm=self.llm,
             chain_type="stuff",
@@ -110,7 +112,9 @@ class RAGService:
             chain_type_kwargs={"prompt": PROMPT}
         )
 
+        print(f"--- Invoking QA Chain for question: {question} ---")
         result = qa_chain.invoke({"query": question})
+        print("--- QA Chain Invocation Complete ---")
         
         source_docs = []
         seen_urls = set()

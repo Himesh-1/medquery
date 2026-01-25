@@ -26,9 +26,9 @@ class IngestionPipeline:
                     self.embeddings,
                     allow_dangerous_deserialization=True
                 )
-                print(f"✅ Loaded existing vector store from {settings.VECTOR_DB_PATH}")
+                print(f"OK: Loaded existing vector store from {settings.VECTOR_DB_PATH}")
             except Exception as e:
-                print(f"⚠️ Could not load vector store: {e}")
+                print(f"WARNING: Could not load vector store: {e}")
 
     def clean_text(self, text: str) -> str:
         """Basic text cleaning."""
@@ -44,14 +44,14 @@ class IngestionPipeline:
             if os.path.exists(root_path):
                 file_path = root_path
             else:
-                return f"❌ File not found: {file_path}"
+                return f"ERROR: File not found: {file_path}"
         
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return self.process_documents(data)
         except Exception as e:
-            return f"❌ Error reading file: {e}"
+            return f"ERROR: Error reading file: {e}"
 
     def process_documents(self, raw_docs: List[dict]) -> str:
         """
