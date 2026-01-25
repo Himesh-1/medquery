@@ -1,54 +1,37 @@
-# Migration Guide: Node/React -> Python/Streamlit (Docker)
+# Migration Guide (Final Fix)
 
-Follow these exact steps to update your existing Render services.
+It seems Render is struggling with the complex commands. I have created simple **wrapper scripts** to fix this definitively.
 
-## Phase 1: GitHub
+## Phase 1: Update Code
 
-1.  **Commit & Push**: Ensure your `python_app` folder (containing `Dockerfile`, `requirements.txt`, `server.py`, `app.py`) is pushed to your GitHub repository.
-
----
+1.  **Commit & Push** your latest changes (I added `run_backend.sh` and `run_frontend.sh` and updated `Dockerfile`).
 
 ## Phase 2: Update Backend Service
 
-_Goal: Replace Node.js server with FastAPI._
-
-1.  **Open Render Dashboard** and click on your **Backend Service**.
-2.  Go to **Settings** -> **Build & Deploy**.
-3.  Update the following fields (scroll down to "Docker" section if needed):
-    - **Root Directory**: `python_app`
-    - **Dockerfile Path**: `Dockerfile`
-    - **Docker Build Context**: `.`
-    - **Docker Command**: `sh -c "uvicorn server:app --host 0.0.0.0 --port $PORT"`
-4.  Go to **Environment**.
-5.  Add/Update:
-    - `GEMINI_API_KEY`: (Your Google API Key)
-    - `PORT`: `10000` (Optional, ensures it matches the command default)
-6.  **Save Changes** (if applicable) or trigger a **Manual Deploy** > **Clear build cache & deploy** (recommended to switch runtimes cleanly).
-
----
+1.  **Select Backend Service** on Render.
+2.  **Settings** -> **Build & Deploy**.
+3.  **Docker Command**:
+    ```bash
+    ./run_backend.sh
+    ```
+4.  **Environment**: Ensure `PORT` is set to `10000` (or leave it, Render creates it automatically, script uses it).
+5.  **Deploy**.
 
 ## Phase 3: Update Frontend Service
 
-_Goal: Replace React Static Site with Streamlit Web Service._
-
-**Important**: If your previous frontend was a **Static Site** on Render, you **cannot** change it to a generic Web Service. You must delete it and create a **New Web Service**.
-_However, if it was already a Web Service (Docker), follow these steps:_
-
-1.  **Open Render Dashboard** and click on your **Frontend Service**.
-2.  Go to **Settings** -> **Build & Deploy**.
-3.  Update fields:
-    - **Root Directory**: `python_app`
-    - **Dockerfile Path**: `Dockerfile`
-    - **Docker Build Context**: `.`
-    - **Docker Command**: `sh -c "streamlit run app.py --server.port $PORT --server.address 0.0.0.0"`
-4.  Go to **Environment**.
-5.  Add/Update:
-    - `BACKEND_URL`: `https://your-backend-service-name.onrender.com` (Copy url from Phase 2)
-6.  **Deploy**.
+1.  **Select Frontend Service** on Render.
+2.  **Settings** -> **Build & Deploy**.
+3.  **Docker Command**:
+    ```bash
+    ./run_frontend.sh
+    ```
+4.  **Environment**: Ensure `PORT` is set to `10000` (optional).
+    - **CRITICAL**: Ensure `BACKEND_URL` is set to your Backend URL.
+5.  **Deploy**.
 
 ---
 
-## Troubleshooting
+## Why this fixes the error
 
-- **"Port Bound" Error**: If logs say "Address already in use", remove the `PORT` env var and let Render assign it automatically.
-- **"Static Site" Limitation**: As mentioned, Streamlit requires a CPU to run python. Static sites (free CDN) cannot run Streamlit. You need a "Web Service" (Free Tier available).
+The error `sh: 1: uvicorn server:app ... : not found` happened because Render was treating the entire command string as a single filename (likely due to copy-paste quotes).
+By using `./run_backend.sh`, we give it a single, clean file to execute, which contains the logic.

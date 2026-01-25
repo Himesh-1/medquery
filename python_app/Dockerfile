@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
-# Make the start script executable
-RUN chmod +x start.sh
+# Make the start scripts executable
+RUN chmod +x start.sh run_backend.sh run_frontend.sh
 
 # Expose ports (FastAPI=8000, Streamlit=8501 or $PORT)
 EXPOSE 8000
