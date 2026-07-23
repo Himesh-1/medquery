@@ -1,21 +1,25 @@
-# MedQuery (scaffold)
+# MedQuery RAG
 
-Small scaffold for a RAG-powered medical QA system.
+A RAG-powered medical QA system that verifies medical questions with live scientific sources from **PubMed**, **ClinicalTrials.gov**, **CDC/NIH**, **DuckDuckGo**, and **Wikipedia** using Google Gemini.
 
-- `backend/`: FastAPI backend
-- `frontend/`: Streamlit demo frontend
-- `sample_data/`: sample dataset
+## Project Structure
 
-Run backend:
+- `python_app/`: Core application (FastAPI backend + Streamlit frontend)
+  - `app.py`: Streamlit UI (`⚕️ MedQuery RAG`)
+  - `server.py`: FastAPI server (`/api/query`)
+  - `services/`: RAG retrieval pipeline and API wrappers
+- `.env`: Environment API configuration (`GOOGLE_API_KEY`)
 
+## How to Run
+
+### 1. Start the Backend API Server
+```bash
+python python_app/server.py
 ```
-cd backend
-python -m uvicorn app.main:app --reload
-```
+*(Runs on http://localhost:8000)*
 
-Run frontend:
-
+### 2. Start the Streamlit Frontend UI
+```bash
+streamlit run python_app/app.py
 ```
-cd frontend
-streamlit run app.py
-```
+*(Runs on http://localhost:8501)*

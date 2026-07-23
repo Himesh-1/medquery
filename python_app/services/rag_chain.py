@@ -22,7 +22,9 @@ async def correct_query(query: str) -> str:
     """
     try:
         response = await llm.ainvoke(prompt)
-        return response.content.strip().replace('"', '')
+        raw = response.content
+        text = raw if isinstance(raw, str) else "".join([p.get("text", "") if isinstance(p, dict) else str(p) for p in raw])
+        return text.strip().replace('"', '')
     except Exception as e:
         print(f"Correction Error: {e}")
         return query
@@ -113,7 +115,8 @@ async def generate_answer(query: str, sources: list):
     
     try:
         response = await llm.ainvoke(prompt)
-        content = response.content
+        raw = response.content
+        content = raw if isinstance(raw, str) else "".join([p.get("text", "") if isinstance(p, dict) else str(p) for p in raw])
         if content.startswith("Answer:"):
             content = content[7:].strip()
         return content
